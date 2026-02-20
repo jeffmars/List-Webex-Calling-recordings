@@ -173,6 +173,10 @@ def list_all_recordings(token: str, csv_path: str = DEFAULT_CSV_FILENAME) -> int
     all_items: list[dict] = []
     session = requests.Session() if HAS_REQUESTS else None
     consecutive_429 = 0
+    page = 0
+
+    print("Fetching recordings (past 30 days)...", file=sys.stderr)
+    sys.stderr.flush()
 
     while True:
         try:
@@ -199,16 +203,21 @@ def list_all_recordings(token: str, csv_path: str = DEFAULT_CSV_FILENAME) -> int
             raise
 
         consecutive_429 = 0
+        page += 1
         items = data.get("items")
         if not isinstance(items, list):
             print("Error: API response missing or invalid 'items' array.", file=sys.stderr)
             sys.exit(1)
         all_items.extend(items)
+        print(f"  Page {page}: {len(items)} items ({len(all_items)} total)", file=sys.stderr)
+        sys.stderr.flush()
 
         if not next_url:
             break
         url = next_url
 
+    print("Writing CSV...", file=sys.stderr)
+    sys.stderr.flush()
     write_recordings_csv(all_items, csv_path)
     print(f"Saved {len(all_items)} recordings to {csv_path}", file=sys.stderr)
     return len(all_items)
